@@ -1,6 +1,7 @@
 #include "playerpage.h"
 #include "ui_playerpage.h"
 #include <QMouseEvent>
+#include <QTimer>
 #include "login.h"
 #include "toast.h"
 PlayerPage::PlayerPage(QWidget *parent)
@@ -30,13 +31,35 @@ PlayerPage::PlayerPage(QWidget *parent)
     });
 
     volume = new Volume(this);
-    // 显⽰⾳量调节窗⼝
-    connect(ui->volumeBtn, &QPushButton::clicked, this, &PlayerPage::onVolumeBtnClicked);
+
     playSpeed = new PlaySpeed(this);
     // 绑定倍数播放按钮信号槽
     connect(ui->speedBtn, &QPushButton::clicked, this, &PlayerPage::onSpeedBtnClicked);
     // 点赞
     connect(ui->likeImageBtn, &QPushButton::clicked, this, &PlayerPage::onLkeImageBtnClcked);
+    // 播放
+    connect(ui->playBtn, &QPushButton::clicked, this,&PlayerPage::onPlayBtnClicked);
+    // 设置倍速播放
+    connect(playSpeed, &PlaySpeed::setPlaySpeed, this,&PlayerPage::onPlaySpeedChanged);
+    // 设置⾳量
+    connect(volume, &Volume::setVolume, this, &PlayerPage::setVolume);
+    ui->volumeBtn->setCheckable(true);          // 点击切静音
+    ui->volumeBtn->installEventFilter(this);    // 按钮侧悬浮
+    volume->installEventFilter(this);           // 弹窗侧悬浮
+    hideTimer = new QTimer(this);
+    hideTimer->setSingleShot(true);
+    hideTimer->setInterval(220);                // 经验值，实机微调
+    connect(hideTimer, &QTimer::timeout, this, [this]{
+        auto hovering = [](QWidget* w){
+            return w->isVisible() &&
+                   w->rect().contains(w->mapFromGlobal(QCursor::pos()));
+        };
+        if (!hovering(ui->volumeBtn) && !hovering(volume) && !volume->isDragging())
+            volume->hide();
+    });
+    connect(ui->volumeBtn, &QPushButton::toggled, this, [this](bool muted){
+        if (mpvPlayer) mpvPlayer->setMute(muted);
+    });
 
 
 }
@@ -122,11 +145,54 @@ void PlayerPage::moveWindows(const QPoint &point)
 
 }
 
-void PlayerPage::onVolumeBtnClicked()
+void PlayerPage::startPlaying(const QString &videoFilePath)
 {
-    moveWindows(mapToGlobal(QPoint(0, 0)));
-    volume->show();
+    if (!mpvPlayer) {                                    // ← 关键：只创建一次
+        mpvPlayer = new MpvPlayer(ui->screen, this);
+
+        // 连接也只建立一次
+        connect(mpvPlayer, &MpvPlayer::playPositionChanged,
+                this, &PlayerPage::onPlayPositionChanged);
+
+        connect(mpvPlayer, &MpvPlayer::durationChanged, this, [this](int64_t d){
+            if (d > 0) duration = d;                     // 拿到真实总时长
+        });
+
+        connect(mpvPlayer, &MpvPlayer::endOfPlaylist, this, [this]{
+            isEnded = true;                              // 播完标志，见第二节
+            isPlay  = false;
+            ui->playBtn->setStyleSheet("border-image : url(:/images/PlayPage/zanting.png)");
+        });
+    }
+
+    this->videoFilePath = videoFilePath;
+    isEnded = false;
+    mpvPlayer->startPlay(videoFilePath);
+    mpvPlayer->pause();
 }
+
+void PlayerPage::onPlayPositionChanged(int64_t playTime)
+{
+    this->playTime = playTime;
+    ui->videoDuration->setText(secondToTime(playTime) + "/" + secondToTime(duration));
+
+    // 修改进度条
+    if (duration > 0)
+    {
+        ui->videoSlider->setPlayStep((double)playTime / duration);
+    }
+
+    // 当播放结束时，设置播放按钮为暂停状态
+    if(this->playTime == duration)
+    {
+        // 视频播放完毕，更新播放按钮图标
+         // 此时播放按钮应该变为暂停
+        isPlay = false;
+        ui->playBtn->setStyleSheet("border-image : url(:/images/PlayPage/zanting.png)");
+    }
+}
+
+
 
 void PlayerPage::onSpeedBtnClicked()
 {
@@ -147,7 +213,72 @@ void PlayerPage::onLkeImageBtnClcked()
 }
 
 
-// void PlayerPage::onPlayBtnClicked()
-// {
+void PlayerPage::onPlayBtnClicked()
+{
+    isPlay = !isPlay;
+    if(isPlay){
+        ui->playBtn->setStyleSheet("border-image : url(:/images/PlayPage/bofang.png);");
+        mpvPlayer->play();
+    }else{
+        ui->playBtn->setStyleSheet("border-image : url(:/images/PlayPage/zanting.png);");
+        mpvPlayer->pause();
+    }
 
-// }
+    // 播放完毕，再⼀次点击播放按钮时，重新开始播放
+    if(playTime == 52 && isPlay)
+    {
+        // 播放位置修改到起始为⽌，⽤⼾点击播放按钮可以重新播放
+        this->playTime = 0;
+        startPlaying(videoFilePath);
+        mpvPlayer->play();
+    }
+
+
+    // 如果本次播放中，视频的播放数未更新时候再去更新
+    // if(!isUpdatePlayNum)
+    // {
+    //     updatePlayNumer();
+    // }
+}
+
+void PlayerPage::onPlaySpeedChanged(double speed)
+{
+    mpvPlayer->setPlaySpeed(speed);
+}
+
+void PlayerPage::setVolume(int volumeRatio)
+{
+    mpvPlayer->setVolume(volumeRatio);
+}
+
+bool PlayerPage::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched == ui->volumeBtn || watched == volume)
+    {
+        if (event->type() == QEvent::Enter) {
+            hideTimer->stop();                        // 关键：取消隐藏
+            if (watched == ui->volumeBtn) {
+                moveWindows(mapToGlobal(QPoint(0, 0)));
+                volume->show();
+                volume->raise();
+            }
+        } else if (event->type() == QEvent::Leave) {
+            hideTimer->start();                       // 不立即隐藏
+        }
+    }
+    return QWidget::eventFilter(watched, event);
+}
+
+QString PlayerPage::secondToTime(int64_t second)
+{
+    QString time;
+    // ⼩时存在时才显⽰
+    if(second/60/60)
+    {
+        time += QString::asprintf("%02lld:", second/60/60);
+    }
+    // 拼接上分和秒
+    time += QString::asprintf("%02lld:%02lld",second/60,second%60);
+    return time;
+
+}

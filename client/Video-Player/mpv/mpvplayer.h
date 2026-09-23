@@ -4,13 +4,12 @@
 #include <QObject>
 #include "./mpv/client.h"
 
-class MpvPlayer : public QObject
+class MpvPlayer:public QObject
 {
     Q_OBJECT
 public:
     explicit MpvPlayer(QWidget* videoRenderWnd = nullptr, QObject *parent = nullptr);
     ~MpvPlayer();
-
     // 处理mpv具体的事件
     void handleMpvEvent(mpv_event* event);
 
@@ -37,11 +36,10 @@ public:
 
     // 获取视频首帧图
     static QString getVideoFirstFrame(const QString& videoPath);
-
 private slots:
     void onMpvEvents();
-
 signals:
+
     // 当mpv触发事件时，在回调函数中发射该信号，由用户程序处理mpv的事件
     void mpvEvents();
 
@@ -58,6 +56,7 @@ private:
     mpv_handle* mpv = nullptr;
     // 保存整个视频的当前播放时间
     int64_t curPlayTime = 0;
+
 };
 
 #endif // MPVPLAYER_H

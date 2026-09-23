@@ -4,11 +4,20 @@
 Volume::Volume(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::Volume)
+    ,volumeRatio(33)
 {
     ui->setupUi(this);
-    setWindowFlag(Qt::Popup);
+    setWindowFlags(Qt::Tool | Qt::FramelessWindowHint);
+    setAttribute(Qt::WA_ShowWithoutActivating);   // 悬浮面不抢焦点
+
     //安装事件拦截器
     ui->volumeBox->installEventFilter(this);
+
+    const int h = qRound(volumeRatio / 100.0 * 145);
+    ui->outLine->setGeometry(ui->outLine->x(), 150 - h, ui->outLine->width(), h);
+    ui->volumeBtn->move(ui->volumeBtn->x(), ui->outLine->y() - ui->volumeBtn->height() / 2);
+    ui->volumeNum->setText(QString::number(volumeRatio));
+
 }
 
 Volume::~Volume()
@@ -18,7 +27,12 @@ Volume::~Volume()
 
 int Volume::getVolume() const
 {
-    return volume;
+    return volumeRatio;
+}
+
+bool Volume::isDragging() const
+{
+
 }
 
 bool Volume::eventFilter(QObject *watched, QEvent *event)
@@ -26,12 +40,14 @@ bool Volume::eventFilter(QObject *watched, QEvent *event)
     if(ui->volumeBox == watched)
     {
         if(event->type() == QEvent::MouseButtonPress){
+            dragging = true;
             calcVolume();
         }else if(event->type() == QEvent::MouseButtonRelease){
-            emit setVolume(volume);
+            dragging = false;
+            emit setVolume(volumeRatio);
         }else if(event->type() == QEvent::MouseMove){
             calcVolume();
-            emit setVolume(volume);
+            emit setVolume(volumeRatio);
         }
 
         return true;
@@ -61,6 +77,7 @@ void Volume::calcVolume()
     ui->volumeBtn->move(ui->volumeBtn->x(), volumeBtnY);
 
     // 计算音量大小
-    volume = ui->outLine->height() / (double)145 * 100;
-    LOG()<<"音量大小"<<volume;
+    volumeRatio = ui->outLine->height() / (double)145 * 100;
+    ui->volumeNum->setText(QString::number(volumeRatio));
+    LOG()<<"音量大小"<<volumeRatio;
 }

@@ -4,6 +4,7 @@
 #include <QDir>
 #include <QProcess>
 
+
 static void wakeup(void* ctx)
 {
     MpvPlayer* mpv = (MpvPlayer*)ctx;
@@ -20,16 +21,20 @@ MpvPlayer::MpvPlayer(QWidget* videoRenderWnd, QObject *parent)
 
     // 创建mpv实例
     mpv = mpv_create();
-    if(nullptr == mpv){
+    if(nullptr == mpv)
+    {
         LOG()<<"mpv实例创建失败";
         return;
     }
 
     // 设置视频渲染窗口--将窗口的id告知给mpv
-    if(videoRenderWnd){
+    if(videoRenderWnd)
+    {
         int64_t wid = videoRenderWnd->winId();
         mpv_set_option(mpv, "wid", MPV_FORMAT_INT64, &wid);
-    }else{
+    }
+    else
+    {
         // 此处不需要播放视频，让视频在mpv后台加载成功即可
         // 禁止视频画面 以及 音频输出
         // vo: 表示视频输出  ao：表示音频输出
@@ -40,7 +45,8 @@ MpvPlayer::MpvPlayer(QWidget* videoRenderWnd, QObject *parent)
     }
 
     // 初始化mpv实例
-    if(mpv_initialize(mpv) < 0){
+    if(mpv_initialize(mpv) < 0)
+    {
         LOG()<<"mpv初始化失败";
         mpv_destroy(mpv);
         return;
@@ -51,17 +57,29 @@ MpvPlayer::MpvPlayer(QWidget* videoRenderWnd, QObject *parent)
     //      MPV_FORMAT_DOUBLE 每秒中会触发多次
     mpv_observe_property(mpv, 0, "time-pos", MPV_FORMAT_INT64);
 
+
+    // 注册需要监控的时间
+    // mpv中常⻅时间
+    /* duration：视频的总时⻓
+    * time-pos：当前播放进度
+    * volume：当前⾳量
+    * mute：是否静⾳
+    * speed：播放速度
+    * pause：播放是否暂停
+    */
     // 订阅 duration 属性
     mpv_observe_property(mpv, 0, "duration", MPV_FORMAT_DOUBLE);
 
     // 设置mpv事件触发时的回调函数
     connect(this, &MpvPlayer::mpvEvents, this, &MpvPlayer::onMpvEvents, Qt::QueuedConnection);
     mpv_set_wakeup_callback(mpv, wakeup, this);
+
 }
 
 MpvPlayer::~MpvPlayer()
 {
-    if(mpv){
+    if(mpv)
+    {
         mpv_terminate_destroy(mpv);
         mpv = nullptr;
     }
@@ -70,7 +88,8 @@ MpvPlayer::~MpvPlayer()
 void MpvPlayer::onMpvEvents()
 {
     // 循环处理所有事件，直到mpv事件队列为空
-    while(mpv){
+    while(mpv)
+    {
         mpv_event* event = mpv_wait_event(mpv, 0);
         if(MPV_EVENT_NONE == event->event_id){
             break;
@@ -83,7 +102,8 @@ void MpvPlayer::onMpvEvents()
 
 void MpvPlayer::handleMpvEvent(mpv_event *event)
 {
-    switch (event->event_id) {
+    switch (event->event_id)
+    {
     case MPV_EVENT_PROPERTY_CHANGE:
     {
         // 属性发生变化的事件
@@ -192,29 +212,6 @@ int64_t MpvPlayer::getPlayTime() const
 
 QString MpvPlayer::getVideoFirstFrame(const QString &videoPath)
 {
-    QString ffmpegPath = QDir::currentPath() + "/ffmpeg/ffmpeg.exe";
-    QString firstFrame = QDir::currentPath() + "/firstFrame.png";
 
-    // 构造截图命令
-    // 注意：不要将参数的参数对应的值放到一个字符串中
-    // 猜测：ffmpeg工具在解析命令时，可能是将参数的和值分开来解析的，即需要先解析出参数，然后在解析出参数的值
-    // 放到一个字符串中，可能就会被当成某个参数 或者 某个参数的值来进行处理
-    QStringList cmd;
-    cmd<<"-ss"<<"00:00:00"
-        <<"-i"<<videoPath
-        <<"-vframes"<<"1"
-        <<firstFrame;
-
-    // 创建进程，让该进程调用ffmpeg工具完成截图
-    QProcess ffmpegProcess;
-    ffmpegProcess.start(ffmpegPath, cmd);
-
-    // 等待进程截图完成, -1: 无限等待，直到进程结束
-    if(!ffmpegProcess.waitForFinished(-1)){
-        LOG()<<"ffmpeg 进程执行失败";
-        return "";
-    }
-
-    // 返回视频首帧图的路径
-    return firstFrame;
 }
+

@@ -48,6 +48,7 @@ qt_add_executable(Video-Player
     login.h login.cpp login.ui
     toast.h toast.cpp
     mpv/mpv/render_gl.h mpv/mpv/stream_cb.h mpv/client.h mpv/mpvplayer.cpp mpv/mpvplayer.h mpv/render.h mpv/render_gl.h mpv/stream_cb.h
+
 )
 
 target_link_libraries(Video-Player
@@ -55,6 +56,11 @@ target_link_libraries(Video-Player
         Qt::Core
         Qt::Widgets
 )
+
+
+set(MPV_DLL ${CMAKE_CURRENT_SOURCE_DIR}/mpv/dll/libmpv-2.dll) #设置mpv库⽬录
+target_link_libraries(Video-Player PRIVATE Qt${QT_VERSION_MAJOR}::Widgets ${MPV_DLL})
+
 
 install(TARGETS Video-Player
     BUNDLE  DESTINATION .

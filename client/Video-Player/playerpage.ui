@@ -516,6 +516,12 @@ QPushButton{
                <string notr="true">#volumeBtn{
  border-image : url(&quot;:/images/PlayPage/shnegyin.png&quot;);
 }
+#volumeBtn:checked {
+    border: none;
+    background-image: url(:/images/PlayPage/jingyin.png);
+    background-repeat: no-repeat;
+    background-position: center;
+}
 </string>
               </property>
               <property name="text">

@@ -17,11 +17,14 @@ public:
 
     bool eventFilter(QObject *watched,QEvent* event)override;
 private:
-    // void onPlayBtnClicked();
+    void onPlayBtnClicked();
 
 private:
     Ui::VideoBox *ui;
-    PlayerPage* playerPage;//播放页面指针
+    PlayerPage* playerPage = nullptr;
+    // model::VideoInfo videoInfo;
+    QPixmap videoCoverImage;   // 视频封面画图
+    QPixmap userAvatar;        // 用户头像
 };
 
 #endif // VIDEOBOX_H

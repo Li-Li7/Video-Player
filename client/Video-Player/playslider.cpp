@@ -8,7 +8,7 @@ PlaySlider::PlaySlider(QWidget *parent)
     , ui(new Ui::PlaySlider)
 {
     ui->setupUi(this);
-    playGrogress=0;
+    playProgress=0;
 }
 
 PlaySlider::~PlaySlider()
@@ -16,12 +16,19 @@ PlaySlider::~PlaySlider()
     delete ui;
 }
 
+void PlaySlider::setPlayStep(double stepRatio)
+{
+    playProgress = stepRatio*ui->inLine->width();
+    LOG()<<playProgress;
+    moveSlider();
+}
+
 void PlaySlider::mousePressEvent(QMouseEvent *event)
 {
     // 当鼠标左键按下时，需要记录当前鼠标的x位置，即播放当前进度
     if(event->button() == Qt::LeftButton)
     {
-        playGrogress = event->pos().x();
+        playProgress = event->pos().x();
         moveSlider();
         return;
     }
@@ -33,10 +40,10 @@ void PlaySlider::mouseReleaseEvent(QMouseEvent *event)
 {
     if(event->button() == Qt::LeftButton)
     {
-        playGrogress = event->pos().x();
+        playProgress = event->pos().x();
         moveSlider();
 
-        emit setPlayProgress((double)playGrogress/ui->inLine->width());
+        emit setPlayProgress((double)playProgress/ui->inLine->width());
         return;
     }
     QWidget::mouseReleaseEvent(event);
@@ -53,15 +60,15 @@ void PlaySlider::mouseMoveEvent(QMouseEvent *event)
 
     // 鼠标的位置在进度条窗口中
     if(event->buttons() == Qt::LeftButton){
-        playGrogress = event->pos().x();
+        playProgress = event->pos().x();
 
-        if(playGrogress < 0){
-            playGrogress = 0;
+        if(playProgress < 0){
+            playProgress = 0;
         }
 
         int maxWidth = this->width();
-        if(playGrogress > maxWidth){
-            playGrogress = maxWidth;
+        if(playProgress > maxWidth){
+            playProgress = maxWidth;
         }
 
         moveSlider();
@@ -70,7 +77,9 @@ void PlaySlider::mouseMoveEvent(QMouseEvent *event)
     QWidget::mouseMoveEvent(event);
 }
 
+
+
 void PlaySlider::moveSlider()
 {
-    ui->outLine->setGeometry(ui->outLine->x(), ui->outLine->y(), playGrogress, ui->outLine->height());
+    ui->outLine->setGeometry(ui->outLine->x(), ui->outLine->y(), playProgress, ui->outLine->height());
 }

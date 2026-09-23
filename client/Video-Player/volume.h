@@ -16,14 +16,16 @@ public:
     explicit Volume(QWidget *parent = nullptr);
     ~Volume();
     int getVolume()const;
+    bool isDragging() const;
 private:
     bool eventFilter(QObject *watched, QEvent *event);
     void calcVolume();
 signals:
-    void setVolume(int volume);
+    void setVolume(int volumeRatio);
 private:
     Ui::Volume *ui;
-    int volume=30;
+    int volumeRatio;
+    bool dragging = false;
 };
 
 #endif // VOLUME_H

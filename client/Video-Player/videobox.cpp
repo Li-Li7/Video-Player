@@ -1,6 +1,7 @@
 #include "videobox.h"
 #include "ui_videobox.h"
 #include "util.h"
+#include <QDir>
 
 VideoBox::VideoBox(QWidget *parent)
     : QWidget(parent)
@@ -30,14 +31,23 @@ bool VideoBox::eventFilter(QObject *watched, QEvent *event)
         {
             // LOG()<<"打开播放窗口";
             playerPage->show();
+            onPlayBtnClicked();
             return true;
         }
     }
     return QObject::eventFilter(watched,event);
 }
 
-// void VideoBox::onPlayBtnClicked()
-// {
+void VideoBox::onPlayBtnClicked()
+{
+    playerPage->show();
+    // mpv库测试,视频放在当前⽬录下videos⽬录中
+    QDir dir = QDir::current(); // qtcreate中拿到的是exe所在⽬录
+    dir.cdUp();
+    dir.cdUp();
+    QString videoPath = dir.absolutePath();
+    videoPath += "/videos/trailer.mp4";
+    playerPage->startPlaying(videoPath);
 
-// }
+}
 

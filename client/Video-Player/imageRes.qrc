@@ -61,5 +61,6 @@
         <file>images/homePage/fangda.png</file>
         <file>images/homePage/chuangkohua.png</file>
         <file>images/PlayPage/fangda.png</file>
+        <file>images/PlayPage/jingyin.png</file>
     </qresource>
 </RCC>
