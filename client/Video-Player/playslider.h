@@ -20,6 +20,7 @@ public:
     void mouseMoveEvent(QMouseEvent* event);
     // 设置播放进度
     void setPlayStep(double stepRatio);
+    bool isUserDragging() const ;
 
 private:
     void moveSlider(); // 改变outLine的geometry
@@ -28,6 +29,7 @@ signals:
 private:
     Ui::PlaySlider *ui;
     int playProgress; // 记录当前播放⻓度
+    bool userDragging = false;
 };
 
 #endif // PLAYSLIDER_H

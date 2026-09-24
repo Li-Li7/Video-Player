@@ -4,6 +4,7 @@
 #include <QTimer>
 #include "login.h"
 #include "toast.h"
+#include <QShortcut>
 PlayerPage::PlayerPage(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::PlayerPage)
@@ -60,6 +61,18 @@ PlayerPage::PlayerPage(QWidget *parent)
     connect(ui->volumeBtn, &QPushButton::toggled, this, [this](bool muted){
         if (mpvPlayer) mpvPlayer->setMute(muted);
     });
+
+    // 点击进度条，设置播放进度
+    connect(ui->videoSlider, &PlaySlider::setPlayProgress, this,&PlayerPage::setPlayProgress);
+
+    // 播放按钮绑定空格快捷键
+    QShortcut* shortcur = new QShortcut(ui->playBtn);
+    QKeySequence keySequence(" ");
+    shortcur->setKey(keySequence);
+    connect(shortcur, &QShortcut::activated, this, [=](){ui->playBtn->animateClick();});
+
+    // 弹幕区域布局
+    initBarrageArea();
 
 
 }
@@ -173,6 +186,7 @@ void PlayerPage::startPlaying(const QString &videoFilePath)
 
 void PlayerPage::onPlayPositionChanged(int64_t playTime)
 {
+    if (ui->videoSlider->isUserDragging()) return;
     this->playTime = playTime;
     ui->videoDuration->setText(secondToTime(playTime) + "/" + secondToTime(duration));
 
@@ -190,6 +204,35 @@ void PlayerPage::onPlayPositionChanged(int64_t playTime)
         isPlay = false;
         ui->playBtn->setStyleSheet("border-image : url(:/images/PlayPage/zanting.png)");
     }
+}
+
+void PlayerPage::setPlayProgress(double playRatio)
+{
+    if (!mpvPlayer || duration <= 0) return;
+    playTime = (int64_t)(playRatio * duration);
+    mpvPlayer->setCurrentPlayPositon(playTime);
+}
+
+void PlayerPage::loadBulletScreenData()
+{
+    QList<BulletScreenInfo> bulletScreenList;
+    // 构造弹幕数据-不同时间点弹幕,1 2 3秒钟，每秒⼀条弹幕
+    for(int i = 0; i < 3; ++i)
+    {
+        BulletScreenInfo bsItem("1000001", i+1, "我是弹幕"+QString::number(i));
+        bulletScreenList.append(bsItem);
+        bulletScreenLists.insert(bsItem.playTime, bulletScreenList);
+        bulletScreenList.clear();
+    }
+
+    // 构造弹幕数据-相同时间点弹幕
+    for(int i = 0; i < 4; ++i){
+        BulletScreenInfo bsItem("1000001", 5, "我是弹幕"+QString::number(4+i));
+        bulletScreenList.append(bsItem);
+    }
+    bulletScreenLists.insert(bulletScreenList[0].playTime, bulletScreenList);
+
+
 }
 
 
@@ -280,5 +323,35 @@ QString PlayerPage::secondToTime(int64_t second)
     // 拼接上分和秒
     time += QString::asprintf("%02lld:%02lld",second/60,second%60);
     return time;
+
+}
+
+void PlayerPage::initBarrageArea()
+{
+    // 创建弹幕的显⽰区域对话框，该对话框没有边框，背景透明
+    barrageArea = new QDialog(this);
+    barrageArea->setWindowFlags(Qt::FramelessWindowHint | Qt::Dialog);
+    barrageArea->setAttribute(Qt::WA_TranslucentBackground);
+    barrageArea->setMinimumSize(this->width(), 38*3);
+    // 垂直布局器，添加到对话框中
+    QVBoxLayout* layout = new QVBoxLayout(barrageArea);
+    barrageArea->setLayout(layout);
+    // 在弹幕区域添加⽤来显⽰三⾏弹幕的控件
+    top = new QFrame(this);
+    top->setFixedSize(this->width(), 38);
+    middle = new QFrame(this);
+    middle->setFixedSize(this->width(), 38);
+    bottom = new QFrame(this);
+    bottom->setFixedSize(this->width(), 38);
+    layout->addWidget(top);
+    layout->addWidget(middle);
+    layout->addWidget(bottom);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(0);
+    // 移动弹幕窗⼝到播放窗⼝的head底下
+    QPoint point = mapToGlobal(QPoint(0, 0));
+    point.setY(point.y() + ui->playHead->height());
+    barrageArea->move(point);
+    barrageArea->show();
 
 }

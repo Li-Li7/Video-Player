@@ -23,11 +23,17 @@ void PlaySlider::setPlayStep(double stepRatio)
     moveSlider();
 }
 
+bool PlaySlider::isUserDragging() const
+{
+    return userDragging;
+}
+
 void PlaySlider::mousePressEvent(QMouseEvent *event)
 {
     // 当鼠标左键按下时，需要记录当前鼠标的x位置，即播放当前进度
     if(event->button() == Qt::LeftButton)
     {
+        userDragging = true;
         playProgress = event->pos().x();
         moveSlider();
         return;
@@ -40,9 +46,11 @@ void PlaySlider::mouseReleaseEvent(QMouseEvent *event)
 {
     if(event->button() == Qt::LeftButton)
     {
+        userDragging = false;
         playProgress = event->pos().x();
         moveSlider();
 
+        //设置播放进度信号
         emit setPlayProgress((double)playProgress/ui->inLine->width());
         return;
     }
