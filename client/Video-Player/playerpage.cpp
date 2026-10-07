@@ -73,6 +73,10 @@ PlayerPage::PlayerPage(QWidget *parent)
 
     // 弹幕区域布局
     initBarrageArea();
+    // 开启弹幕
+    connect(ui->bulletScreenBtn, &QPushButton::clicked, this, &PlayerPage::onBulletScreenClicked);
+    // 发送弹幕
+    connect(ui->bulletScreenText, &BarrageEdit::sendBulletScreen, this,&PlayerPage::onsendBulletScreenBtnClicked);
 
 
 }
@@ -131,6 +135,12 @@ void PlayerPage::mouseMoveEvent(QMouseEvent *event)
         QPoint targetPos = event->globalPosition().toPoint() - dragPos;
         move(targetPos);
         event->accept();
+
+        move(event->globalPosition().toPoint() - dragPos);
+        // 移动弹幕窗⼝到播放器的head之后
+        QPoint point = geometry().topLeft();
+        point.setY(point.ry()+60);
+        barrageArea->move(point);
         return;
     }
 
@@ -160,6 +170,7 @@ void PlayerPage::moveWindows(const QPoint &point)
 
 void PlayerPage::startPlaying(const QString &videoFilePath)
 {
+
     if (!mpvPlayer) {                                    // ← 关键：只创建一次
         mpvPlayer = new MpvPlayer(ui->screen, this);
 
@@ -178,14 +189,22 @@ void PlayerPage::startPlaying(const QString &videoFilePath)
         });
     }
 
+
+
     this->videoFilePath = videoFilePath;
     isEnded = false;
+    loadBulletScreenData();
     mpvPlayer->startPlay(videoFilePath);
     mpvPlayer->pause();
+
+
 }
 
 void PlayerPage::onPlayPositionChanged(int64_t playTime)
 {
+    // 随着视频播放持续，要实时更新弹幕数据
+    showBulletScree();
+
     if (ui->videoSlider->isUserDragging()) return;
     this->playTime = playTime;
     ui->videoDuration->setText(secondToTime(playTime) + "/" + secondToTime(duration));
@@ -213,11 +232,51 @@ void PlayerPage::setPlayProgress(double playRatio)
     mpvPlayer->setCurrentPlayPositon(playTime);
 }
 
+void PlayerPage::onBulletScreenClicked()
+{
+    isStartBS = !isStartBS;
+    if(isStartBS)
+    {
+        ui->bulletScreenBtn->setStyleSheet("borderimage:url(:/images/PlayPage/danmu.png)");
+
+        // 打开弹幕
+        barrageArea->show();
+    }
+    else
+    {
+        ui->bulletScreenBtn->setStyleSheet("borderimage:url(:/images/PlayPage/danmuguan.png)");
+
+        // 关闭弹幕
+        barrageArea->hide();
+    }
+
+}
+
+void PlayerPage::onsendBulletScreenBtnClicked(const QString &text)
+{
+    // 如果弹幕是关闭的则⽆法发送弹幕
+    if(!isStartBS)
+    {
+        return;
+    }
+
+    BulletScreenItem* bs = new BulletScreenItem(top);
+    QPixmap pixmap(":/images/homePage/touxiang.png");
+    bs->setBulletScreenIcon(pixmap);
+    bs->setBulletScreenText(text);
+    int duration = 10000 * width() / (double)(30*18+1450);
+    bs->setBulletScreenAnimal(top->width(), duration);
+    bs->startAnimal();
+
+}
+
+// 加载弹幕数据
 void PlayerPage::loadBulletScreenData()
 {
+    bulletScreenLists.clear();
     QList<BulletScreenInfo> bulletScreenList;
     // 构造弹幕数据-不同时间点弹幕,1 2 3秒钟，每秒⼀条弹幕
-    for(int i = 0; i < 3; ++i)
+    for(int i = 0; i < 9; ++i)
     {
         BulletScreenInfo bsItem("1000001", i+1, "我是弹幕"+QString::number(i));
         bulletScreenList.append(bsItem);
@@ -226,7 +285,7 @@ void PlayerPage::loadBulletScreenData()
     }
 
     // 构造弹幕数据-相同时间点弹幕
-    for(int i = 0; i < 4; ++i){
+    for(int i = 0; i < 5; ++i){
         BulletScreenInfo bsItem("1000001", 5, "我是弹幕"+QString::number(4+i));
         bulletScreenList.append(bsItem);
     }
@@ -326,6 +385,7 @@ QString PlayerPage::secondToTime(int64_t second)
 
 }
 
+// 弹幕区域布局
 void PlayerPage::initBarrageArea()
 {
     // 创建弹幕的显⽰区域对话框，该对话框没有边框，背景透明
@@ -354,4 +414,49 @@ void PlayerPage::initBarrageArea()
     barrageArea->move(point);
     barrageArea->show();
 
+}
+
+void PlayerPage::showBulletScree()
+{
+    // 如果打开关闭时，则不需要添加弹幕到界⾯
+    if(!isStartBS)
+    {
+        return;
+    }
+
+    QList<BulletScreenInfo> bulletScreenList = bulletScreenLists.value(playTime);
+    // 显⽰弹幕
+    int xTop, xMid ,xBottom;
+    xTop = xMid = xBottom = top->width();
+    BulletScreenItem* bs = nullptr;
+    for(int i = 0; i < bulletScreenList.size(); ++i)
+    {
+        BulletScreenInfo& bsInfo = bulletScreenList[i];
+        if(0 == i%3)
+        {
+            bs = new BulletScreenItem(top);
+            bs->setBulletScreenText(bsInfo.text);
+            // 按照最⼤ 幕字数计算当前弹幕时⻓
+            int duration = 10000*xTop / (double)(30*18+1450);
+            bs->setBulletScreenAnimal(xTop, duration);
+            xTop += bs->width() + 18*4; // 同⼀⾏间隔4个汉⼦，18是每个字的像素⼤⼩
+        }else if(1 == i%3){
+            bs = new BulletScreenItem(middle);
+            bs->setBulletScreenText(bsInfo.text);
+            // 按照最⼤ 幕字数计算当前弹幕时⻓
+            int duration = 10000*xMid / (double)(30*18+1450);
+            bs->setBulletScreenAnimal(xMid, duration);
+            xMid += bs->width() + 18*4; // 同⼀⾏间隔4个汉⼦
+        }
+        else
+        {
+            bs = new BulletScreenItem(bottom);
+            bs->setBulletScreenText(bsInfo.text);
+            // 同⼀个时间点：第三⾏弹幕往后偏移2个字
+            int duration = 10000 * xBottom / (double)(30*18+1450);
+            bs->setBulletScreenAnimal(xBottom+2*18, duration);
+            xBottom += bs->width() + 18*4; // 同⼀⾏间隔4个汉⼦
+        }
+        bs->startAnimal();
+    }
 }

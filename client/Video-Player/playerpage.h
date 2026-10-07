@@ -30,6 +30,10 @@ public:
     void startPlaying(const QString &videoFilePath);
     void onPlayPositionChanged(int64_t playTime); // 播放位置改变
     void setPlayProgress(double playRatio); // 设置播放进度
+    void onBulletScreenClicked(); // 弹幕开关控制
+    void onsendBulletScreenBtnClicked(const QString &text); // 发送弹幕
+
+
 
     // 加载弹幕数据
     void loadBulletScreenData();
@@ -48,6 +52,9 @@ private:
     QString secondToTime(int64_t second);
     // 弹幕区域布局
     void initBarrageArea();
+    // 显⽰弹幕
+    void showBulletScree();
+
 
 
 private:
@@ -74,7 +81,8 @@ private:
     QFrame* top;
     QFrame* middle;
     QFrame* bottom;
-    QMap<int64_t, QList<BulletScreenInfo>>* bulletScreenLists; // 临时保存弹幕数据
+    QMap<int64_t, QList<BulletScreenInfo>> bulletScreenLists;   //临时保存弹幕信息
+    bool isStartBS = true; // 是否开启弹幕，默认弹幕开启
 
 
 };

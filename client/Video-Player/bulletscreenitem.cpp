@@ -1,6 +1,12 @@
 #include "bulletscreenitem.h"
 #include <QHBoxLayout>
 
+BulletScreenInfo::BulletScreenInfo(const QString& userId, int64_t playTime, const QString& text)
+    : userId(userId)
+    , playTime(playTime)
+    , text(text)
+{}
+
 BulletScreenItem::BulletScreenItem(QWidget *parent)
     : QFrame{parent}
 {

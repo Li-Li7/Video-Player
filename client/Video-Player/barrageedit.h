@@ -12,11 +12,16 @@ public:
     explicit BarrageEdit(QWidget *parent = nullptr);
     // 鼠标在编辑框中点击时
     // virtual void mousePressEvent(QMouseEvent* event)override;
+    // 发送弹幕按钮点击
+    void onSendBulletScreenBtn();
+
 
 private slots:
     // void onSendBSBtnClicked();
 
+
 signals:
+    //通知playerpage发送该弹幕
     void sendBulletScreen(const QString& text);
 private:
      QPushButton* sendBSBtn;

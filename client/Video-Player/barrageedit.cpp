@@ -21,7 +21,17 @@ BarrageEdit::BarrageEdit(QWidget *parent):QLineEdit{parent}
                              "font-size : 14px;");
     sendBSBtn->move(width()-sendBSBtn->width()-2, 2);
     // connect(sendBSBtn, &QPushButton::clicked, this, &BarrageEdit::onSendBSBtnClicked);
+    // 发送弹幕按钮点击
+    connect(sendBSBtn, &QPushButton::clicked, this, &BarrageEdit::onSendBulletScreenBtn);
+
 }
+
+void BarrageEdit::onSendBulletScreenBtn()
+{
+    emit sendBulletScreen(this->text());
+}
+
+
 
 // void BarrageEdit::onSendBSBtnClicked()
 // {

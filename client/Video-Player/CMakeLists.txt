@@ -49,6 +49,7 @@ qt_add_executable(Video-Player
     toast.h toast.cpp
     mpv/mpv/render_gl.h mpv/mpv/stream_cb.h mpv/client.h mpv/mpvplayer.cpp mpv/mpvplayer.h mpv/render.h mpv/render_gl.h mpv/stream_cb.h
     bulletscreenitem.h bulletscreenitem.cpp
+    model/datacenter.h model/datacenter.cpp
 
 )
 
