@@ -50,6 +50,10 @@ qt_add_executable(Video-Player
     mpv/mpv/render_gl.h mpv/mpv/stream_cb.h mpv/client.h mpv/mpvplayer.cpp mpv/mpvplayer.h mpv/render.h mpv/render_gl.h mpv/stream_cb.h
     bulletscreenitem.h bulletscreenitem.cpp
     model/datacenter.h model/datacenter.cpp
+    model/data.h
+    model/data.cpp
+    test/testJson.h
+    netclient/netclient.h netclient/netclient.cpp
 
 )
 
